@@ -1,0 +1,11 @@
+<launch>
+    <!-- <param name="/print_frq" type="double" value="2.0" /> -->
+    <arg name="output" value = "screen"/>
+
+    <node name = "serial_node"  pkg="rosserial_python" type="serial_node.py" output="$(arg output)">
+        <param name="port" value="/dev/ttyACM0" />
+    </node>
+    <!-- rosrun rosserial_python serial_node.py /dev/ttyACM0 -->
+    <node name="RPi_cp4_node" pkg="mobilerobots_cp4" type="RPi_cp4_node" output= "$(arg output)" />
+    <!-- <node name="Arduino" pkg="MobileRobots_Checkpoint1" type="Arduino_node" output="$(arg output)"/>     -->
+</launch>
