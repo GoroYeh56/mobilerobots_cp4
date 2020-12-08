@@ -17,10 +17,12 @@
 ================================== */
 
 // ========= Publishers ========== //
+ros::Publisher Start_pub;
 ros::Publisher StateCmd_pub;
 ros::Publisher BeaconTarget_pub;
 
 // ==========  Messages ==========  //
+std_msgs::String start_cmd;
 std_msgs::Int64 beacon_target; 
 std_msgs::Int64 robot_state_cmd;
 
@@ -47,7 +49,8 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "RPi_cp4_node");  //一開始必須先初始化，指定node名稱為talker
 
   ros::NodeHandle n;     
-
+  
+  Start_pub = n.advertise<std_msgs::String>("start", 1);
   StateCmd_pub = n.advertise<std_msgs::Int64>("State_Cmd", 1);
   BeaconTarget_pub = n.advertise<std_msgs::Int64>("Beacon_Target", 1);
   ros::Subscriber RPi_sub = n.subscribe("robot_state", 1, robot_state_Callback);  
@@ -58,6 +61,8 @@ int main(int argc, char **argv)
 
   while (ros::ok())
   {
+    ROS_INFO("Enter 'start' \n"); 
+    std::cin>>start_cmd.data;
     ROS_INFO("State cmd: "); 
     ROS_INFO("Finding_Puck: 0"); 
     ROS_INFO("Finding_Beacon: 1"); 
@@ -68,6 +73,7 @@ int main(int argc, char **argv)
     ROS_INFO("Beacon-1500: 2"); 
     std::cin>> beacon_target.data;
 
+    Start_pub.publish(start_cmd);
     StateCmd_pub.publish(robot_state_cmd);
     BeaconTarget_pub.publish(beacon_target);
 

@@ -105,10 +105,11 @@ States:
 3. Finish
 */
 
-// start from 0 to 3
+// start from 0 to 2
 enum State{
     Finding_Puck, 
     Finding_Beacon,
+    // Reaching_Beacon,
     IDLE,
     Finish
 };
@@ -825,10 +826,14 @@ void KEEP_FIND_BEACON2(){
     else num_of_ones ++;
 
     cur_time = millis();
+    Serial.println("here");
     if(cur_time - last_time >= sampling_time ){
         // compute ratio.
         ratio = ((float)num_of_zeros / (float)(num_of_ones+num_of_zeros));
         ratio_msg.data = ratio;
+//        Serial.print("ratio:");
+//        Serial.println(ratio);
+
         // Beacon 1: 600 => 0.27   0.32    // 0.34 ~ 0.35
         // Beacon 2: 1500 => 0.17 ~ 0.22   // ours: 0.19 ~ 0.21
         if(Beacon_target == BEACON_1){
@@ -839,7 +844,10 @@ void KEEP_FIND_BEACON2(){
               while(counter >0 ){
                 WAIT_AND_COMPUTE_RATIO();
               }
-              Find_IR_SLOWLY();              
+//              Serial.println("move");
+              Find_IR_SLOWLY();
+              
+//              KEEP_FIND_BEACON2();              
           }
           FORWARD_SLOWLY();
         }

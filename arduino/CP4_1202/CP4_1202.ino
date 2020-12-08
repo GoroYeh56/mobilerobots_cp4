@@ -1,7 +1,7 @@
 
 ///////////// ROS Communication here. /////////////////
 #include <ros.h>
-#include <std_msgs/Empty.h>
+//#include <std_msgs/Empty.h>
 #include <std_msgs/Int64.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
@@ -60,11 +60,11 @@ boolean Rresult;
 
 ///////// PID Configuration //////////////
 
-double LKp = 5;
-double LKi = 3;
+double LKp = 1;
+double LKi = 5;
 double LKd = 0;
-double RKp = 5;
-double RKi = 3;
+double RKp = 1;
+double RKi = 5;
 double RKd = 0;
 
 PID LeftPID(&Labs_duration, &Lcontrol_signal, &Left_setpoint, LKp, LKi, LKd, DIRECT);
@@ -118,17 +118,19 @@ enum State{
 #define BEACON_2 2
 
 // Given by ROS, default target: door 1
-int Beacon_target = 2; 
+
 // Beacon the robot is facing.
 int Face_Beacon = 1;
+//int Beacon_target = 1; 
+int Beacon_target = 2; 
 // Initial state (should be Finding_Puck)
-//State state = Finding_Puck;
-State state = Finish; // initial, waiting for RPi to command.
+State state = Finding_Puck;
+//State state = Finding_Beacon; // initial, waiting for RPi to command.
 // Finish Flag
 bool Reach_Beacon = false;
 
 // Params & Vars for Calculating IR
-int sampling_time = 500; // 0.5 second.
+int sampling_time = 5; // 0.5 second.
 int cur_time = 0;
 int last_time = 0;
 int num_of_zeros = 0;
@@ -239,7 +241,8 @@ void setup()
     nh.initNode();
     nh.subscribe(StateCmd_sub);
     nh.subscribe(BeaconTarget_sub);
-
+    nh.advertise(IR_ratio_pub);
+    nh.advertise(robot_state_pub);
     pinMode(enA, OUTPUT); //we have to set PWM pin as output
     pinMode(in1, OUTPUT); //Logic pins are also set as output
     pinMode(in2, OUTPUT);
@@ -287,8 +290,8 @@ int ReadLightSensor()
 {
     // read the value from the sensor:
     int val = analogRead(sensorPin);
-    //  Serial.print("Light sensor ");
-    //  Serial.println(val);
+//      Serial.print("Light sensor ");
+//      Serial.println(val);
     return val;
 }
 
@@ -301,15 +304,23 @@ int ReadLightSensor()
 
 // ================ HYPERPARAMETERS ================== //
 
-int Reverse_Time = 6000;
-int TurnLeft_Time = 6000;
+int Reverse_Time = 9000;
+int TurnLeft_Time = 7400;
+//int TurnLeft_Time = 8000;
 int TurnRight_Time = 6000;
-int Find_delay_Time = 1000;
+//int Find_delay_Time = 600;
+//int Find_delay_Time = 1000;
+int Find_delay_Time = 800;
 int SPRINT_TIME = 4000;
 
 ////// Advance / Turn Speed /////////
-int LadvanceSpeed = 240;
-int RadvanceSPeed = 240;
+//int LadvanceSpeed = 200;
+////int LadvanceSpeed = 218;
+//int RadvanceSPeed = 218;
+
+int LadvanceSpeed = 170;
+//int LadvanceSpeed = 218;
+int RadvanceSPeed = 180;
 
 // Left: 200 Right: 218 go straight.
 
@@ -319,21 +330,21 @@ int RreverseSPeed = -180;
 int LturnLeftSpeed = -140;
 int RturnLeftSpeed = 140;
 
-int LturnRightSpeed = 140;
-int RturnRightSpeed = -140;
+int LturnRightSpeed = 110;
+int RturnRightSpeed = -110;
 
 ////// Find Speed /////////
-int LfindLeftSpeed = -70;
-int RfindLeftSpeed = 70;
-int LfindRightSpeed = 70;
-int RfindRightSpeed = -70;
+int LfindLeftSpeed = -60;
+int RfindLeftSpeed = 60;
+int LfindRightSpeed = 60;
+int RfindRightSpeed = -60;
 
 int SPRINT_leftSpeed = 220;
 int SPRINT_rightSpeed = 220;
 
 ///// GOAL light value threshold /////
-int threshold = 350;
-int find_threshold = 400;
+int threshold = 340;
+int find_threshold = 480;
 
 /////// TODO : Optimize ////////
 void Check_Touched()
@@ -341,6 +352,7 @@ void Check_Touched()
     Ltouch_val = digitalRead(LtouchPin);
     Rtouch_val = digitalRead(RtouchPin);
     Goal_touch_val = digitalRead(GoalTouchPin);
+    
     if (Goal_touch_val == HIGH || Light_Value <= threshold)
     {                      // Reach GOAL and should STOP!
         Reach_Goal = true; // should stop
@@ -351,12 +363,19 @@ void Check_Touched()
         // Turn Left
         if (Rtouch_val == HIGH)
         {
+
+//        Serial.print("R touch");
+//        Serial.println(Rtouch_val);
+          
             REVERSE_CMD();
             TURN_LEFT_CMD();
         }
         // Turn Right
         if (Ltouch_val == HIGH)
         {
+
+//      Serial.print("L touch");
+//        Serial.println(Ltouch_val);            
             REVERSE_CMD();
             TURN_LEFT_CMD();
         }
@@ -594,39 +613,45 @@ void Find_Max_Light()
 {
     int last_light_val = Light_Value;
     while (1)
-    {
-        FIND_LEFT(); // First search left.
+    { 
+//        FIND_RIGHT();
+        FIND_LEFT();
+         // First search left.
         Light_Value = ReadLightSensor();
         if (Light_Value >= last_light_val) // Should turn right.
         {
             last_light_val = Light_Value; // first update last_light_val
             while (1)                     // Find right max light intensity (with the smallest light_val)
             {
+//                FIND_LEFT();
                 FIND_RIGHT();
                 Light_Value = ReadLightSensor();
                 if (Light_Value >= last_light_val)
                 { // rotate back and break.
+//                    FIND_RIGHT();
                     FIND_LEFT();
                     break;
                 }
                 else
                 { // should keep finding right.
+//                    FIND_LEFT();
                     FIND_RIGHT();
                 }
                 // update last_light_value
                 last_light_val = Light_Value;
             }
-            Serial.println("Break from the first FIND while-loop");
+//            Serial.println("Break from the first FIND while-loop");
             break;
         }
         else // should keep finding left.
         {
-            FIND_LEFT();
+//            FIND_RIGHT();
+              FIND_LEFT();
         }
         // update the last_light_value
         last_light_val = Light_Value;
     }
-    Serial.println("Break from the second FIND while-loop");
+//    Serial.println("Break from the second FIND while-loop");
 }
 
 
@@ -638,7 +663,7 @@ void Do_nothing()
 void TERMINATE()
 {
     SPRINT_CMD();
-    Serial.println("SPRINT Done");
+//    Serial.println("SPRINT Done");
     while (1)
     {
         STOP(); // Stuck here.
@@ -709,7 +734,6 @@ void TURN_RIGHT_CMD()
 
 void KEEP_FIND_BEACON(){
 
-    ////// TODO: How to know whether we Reach the Beacon? ////
     // Sampling signals from IR.
     IR_val = digitalRead(IRPin);
     
@@ -728,8 +752,8 @@ void KEEP_FIND_BEACON(){
 //        Serial.print("add:");
 //        Serial.println(num_of_zeros + num_of_ones);
 
-        Serial.print("ratio:");
-        Serial.println(ratio);
+//        Serial.print("ratio:");
+//        Serial.println(ratio);
         // Beacon 1: 600 => 0.27   0.32    // 0.34 ~ 0.35
         // Beacon 2: 1500 => 0.17 ~ 0.22   // ours: 0.19 ~ 0.21
         if(ratio > 0.23 && ratio <= 0.35){
@@ -769,20 +793,101 @@ void KEEP_FIND_BEACON(){
 
 }
 
+void WAIT_AND_COMPUTE_RATIO(){
+ 
+    // STOP Robot for a second.
+    STOP();
+    
+    // Sampling signals from IR.   
+    IR_val = digitalRead(IRPin);
+//    Serial.println(IR_val);
+    cur_time = millis();
+    if(IR_val == 0) num_of_zeros++;
+    else num_of_ones ++;
+    if(cur_time - last_time >= sampling_time ){
+        ratio = ((float)num_of_zeros / (float)(num_of_ones+num_of_zeros));
+//        ratio_msg.data = ratio;
+//        Serial.print("ratio:");
+//        Serial.println(ratio);
+
+        last_time = cur_time;
+        num_of_ones = num_of_zeros = 0; //reset 
+    }
+  
+}
+
+
+void KEEP_FIND_BEACON2(){
+
+    // Sampling signals from IR.
+    IR_val = digitalRead(IRPin);
+    
+    if(IR_val == 0) num_of_zeros++;
+    else num_of_ones ++;
+
+    cur_time = millis();
+    Serial.println("here");
+    if(cur_time - last_time >= sampling_time ){
+        // compute ratio.
+        ratio = ((float)num_of_zeros / (float)(num_of_ones+num_of_zeros));
+        ratio_msg.data = ratio;
+//        Serial.print("ratio:");
+//        Serial.println(ratio);
+
+        // Beacon 1: 600 => 0.27   0.32    // 0.34 ~ 0.35
+        // Beacon 2: 1500 => 0.17 ~ 0.22   // ours: 0.19 ~ 0.21
+        if(Beacon_target == BEACON_1){
+          while(ratio <= 0){
+              // turn right.  
+              // Time TODO : tuned.
+              int counter = 1000;
+              while(counter >0 ){
+                WAIT_AND_COMPUTE_RATIO();
+              }
+//              Serial.println("move");
+              Find_IR_SLOWLY();
+              
+//              KEEP_FIND_BEACON2();              
+          }
+          FORWARD_SLOWLY();
+        }
+        else{
+          while(ratio <= 0){
+            
+              int counter = 1000;
+              while(counter >0 ){
+                WAIT_AND_COMPUTE_RATIO();
+                counter--;
+              }
+                           Serial.println("move");
+              Find_IR_SLOWLY();
+              
+//              KEEP_FIND_BEACON2();              
+          }
+          FORWARD_SLOWLY();         
+        }
+        last_time = cur_time;
+        num_of_ones = num_of_zeros = 0; //reset 
+    }
+
+}
+
+
+
 void Obstacle_Avoidance()
 {
     Ltouch_val = digitalRead(LtouchPin);
     Rtouch_val = digitalRead(RtouchPin);
     if (Rtouch_val == HIGH)
     {
-      Serial.println("R touch HIGH");
+//      Serial.println("R touch HIGH");
         REVERSE_CMD();
         TURN_LEFT_CMD();
     }
     // Turn Right
     if (Ltouch_val == HIGH)
     {
-        Serial.println("L touch HIGH");
+//        Serial.println("L touch HIGH");
         REVERSE_CMD();
         TURN_RIGHT_CMD();
     }
@@ -790,15 +895,134 @@ void Obstacle_Avoidance()
 }
 
 
+int Forward_SLOW_time = 6000;
+int Forward_SLOW_speed = 150;
+
+void Forward_little()
+{
+    digitalWrite(in1, HIGH);
+    digitalWrite(in2, LOW);
+    digitalWrite(in3, HIGH);
+    digitalWrite(in4, LOW);
+    Left_PWM = Forward_SLOW_speed;
+    Right_PWM = Forward_SLOW_speed;
+    Left_setpoint = abs(Left_PWM);
+    Right_setpoint = abs(Right_PWM);
+
+    Labs_duration = abs(Lduration);
+    Lresult = LeftPID.Compute(); //PID conversion is complete and returns 1
+    if (Lresult)
+        Lduration = 0; //Count clear, wait for the next count
+    analogWrite(enA, Lcontrol_signal);
+
+    Rabs_duration = abs(Rduration);
+    Rresult = RightPID.Compute(); //PID conversion is complete and returns 1
+    if (Rresult)
+        Rduration = 0; //Count clear, wait for the next count
+    analogWrite(enB, Rcontrol_signal);
+}
+
+void FORWARD_SLOWLY(){
+    int counter = Forward_SLOW_time;
+    while (counter > 0)
+    {
+        Forward_little(); // 30 degree
+        counter--;
+    }  
+}
+
+
+int TurnRight_SLOW_time = 2000;
+int TurnRight_SLOW_speed = 60;
+void Turn_Right_SLOW()
+{
+
+    digitalWrite(in1, HIGH);
+    digitalWrite(in2, LOW);
+    digitalWrite(in3, LOW);
+    digitalWrite(in4, HIGH);
+    Left_PWM = TurnRight_SLOW_speed;
+    Right_PWM = TurnRight_SLOW_speed;
+    Left_setpoint = abs(Left_PWM);
+    Right_setpoint = abs(Right_PWM);
+
+    Labs_duration = abs(Lduration);
+    Lresult = LeftPID.Compute(); //PID conversion is complete and returns 1
+    if (Lresult)
+        Lduration = 0; //Count clear, wait for the next count
+    analogWrite(enA, Lcontrol_signal);
+
+    Rabs_duration = abs(Rduration);
+    Rresult = RightPID.Compute(); //PID conversion is complete and returns 1
+    if (Rresult)
+        Rduration = 0; //Count clear, wait for the next count
+    analogWrite(enB, Rcontrol_signal);
+}
+
+
+void TURN_RIGHT_SLOWLY(){
+    int counter = TurnRight_SLOW_time;
+    while (counter > 0)
+    {
+        Turn_Right_SLOW(); // 30 degree
+        counter--;
+    }  
+}
+int FindIR_SLOW_speed = 65;
+void FindIR_SLOW()
+{
+
+    digitalWrite(in1, HIGH);
+    digitalWrite(in2, LOW);
+    digitalWrite(in3, LOW);
+    digitalWrite(in4, HIGH);
+    Left_PWM = TurnRight_SLOW_speed;
+    Right_PWM = TurnRight_SLOW_speed;
+    Left_setpoint = abs(Left_PWM);
+    Right_setpoint = abs(Right_PWM);
+
+    Labs_duration = abs(Lduration);
+    Lresult = LeftPID.Compute(); //PID conversion is complete and returns 1
+    if (Lresult)
+        Lduration = 0; //Count clear, wait for the next count
+    analogWrite(enA, Lcontrol_signal);
+
+    Rabs_duration = abs(Rduration);
+    Rresult = RightPID.Compute(); //PID conversion is complete and returns 1
+    if (Rresult)
+        Rduration = 0; //Count clear, wait for the next count
+    analogWrite(enB, Rcontrol_signal);
+}
+
+
+
+int FindIR_SLOW_time = 600;
+void Find_IR_SLOWLY(){
+      FindIR_SLOW();
+    int counter = FindIR_SLOW_time;
+    while (counter > 0)
+    {
+        FindIR_SLOW(); // 30 degree
+        counter--;
+    }  
+}
+
+
 // ================= MAIN LOOP ================= //
 void loop()
 {
-
+//    Serial.print("Robot state:");
+//    Serial.println(state);/
+    
     switch (state)
     {
     case Finding_Puck:
         if (Reach_Goal == true)
         {
+            // First forward a little.
+            FORWARD_SLOWLY();
+            // And Slowly turn right to the goal.
+            TURN_RIGHT_SLOWLY();
             state = Finding_Beacon;
         }
         else // Haven't reach LED PUCK
@@ -815,8 +1039,9 @@ void loop()
         else // Haven't reach BEACON
         {
 //            Advance();
-            KEEP_FIND_BEACON();
-            Obstacle_Avoidance();
+            //KEEP_FIND_BEACON();
+            KEEP_FIND_BEACON2();
+//            Obstacle_Avoidance();
         }
         robot_state.data = "Finding_Beacon";
     break;    
@@ -835,19 +1060,10 @@ void loop()
     }
 
     //////////// ROS Publish /robot_state ////////////
-    robot_state_pub.publish(&robot_state);
-    IR_ratio_pub.publish(&ratio_msg);
-    nh.spinOnce();
+//    robot_state_pub.publish(&robot_state);
+//    IR_ratio_pub.publish(&ratio_msg);
+//    nh.spinOnce();
     
-    // ======== CP3 ======== //
-    // if (Reach_Goal == true)
-    // {
-    //     TERMINATE();
-    // }
-    // else // Haven't reach GOAL
-    // {
-    //     CONTINUE_TASK();
-    // }
 }
 
 // ================ Encoder ================ //
