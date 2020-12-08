@@ -22,7 +22,7 @@ ros::Publisher StateCmd_pub;
 ros::Publisher BeaconTarget_pub;
 
 // ==========  Messages ==========  //
-std_msgs::String start_cmd;
+std_msgs::Int64 start_cmd;
 std_msgs::Int64 beacon_target; 
 std_msgs::Int64 robot_state_cmd;
 
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 
   ros::NodeHandle n;     
   
-  Start_pub = n.advertise<std_msgs::String>("start", 1);
+  Start_pub = n.advertise<std_msgs::Int64>("start", 1);
   StateCmd_pub = n.advertise<std_msgs::Int64>("State_Cmd", 1);
   BeaconTarget_pub = n.advertise<std_msgs::Int64>("Beacon_Target", 1);
   ros::Subscriber RPi_sub = n.subscribe("robot_state", 1, robot_state_Callback);  
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
   while (ros::ok())
   {
-    ROS_INFO("Enter 'start' \n"); 
+    ROS_INFO("Enter a number to start: "); 
     std::cin>>start_cmd.data;
     ROS_INFO("State cmd: "); 
     ROS_INFO("Finding_Puck: 0"); 
