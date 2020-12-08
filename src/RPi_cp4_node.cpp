@@ -57,10 +57,10 @@ int main(int argc, char **argv)
   ros::Subscriber IR_sub = n.subscribe("IR_ratio", 1, IR_ratio_Callback);  
 
 
-  ros::Rate loop_rate(10);   // 10Hz
+  // ros::Rate loop_rate(10);   // 10Hz
 
-  while (ros::ok())
-  {
+  // while (ros::ok())
+  // {
     ROS_INFO("Enter a number to start: "); 
     std::cin>>start_cmd.data;
     ROS_INFO("State cmd: "); 
@@ -77,10 +77,11 @@ int main(int argc, char **argv)
     StateCmd_pub.publish(robot_state_cmd);
     BeaconTarget_pub.publish(beacon_target);
 
-    ros::spinOnce();   // 呼叫一次 callback function，在subscriber才有用
+    ros::spin();
+    // ros::spinOnce();   // 呼叫一次 callback function，在subscriber才有用
 
-    loop_rate.sleep(); 
-  }
+    // loop_rate.sleep(); 
+  // }
 
   return 0;
 }
