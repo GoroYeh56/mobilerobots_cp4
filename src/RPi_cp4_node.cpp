@@ -56,8 +56,8 @@ int main(int argc, char **argv)
 
   ros::Rate loop_rate(10);   // 10Hz
 
-  while (ros::ok())
-  {
+ // while (ros::ok())
+//  {
     ROS_INFO("State cmd: "); 
     ROS_INFO("Finding_Puck: 0"); 
     ROS_INFO("Finding_Beacon: 1"); 
@@ -71,10 +71,10 @@ int main(int argc, char **argv)
     StateCmd_pub.publish(robot_state_cmd);
     BeaconTarget_pub.publish(beacon_target);
 
-    ros::spinOnce();   // 呼叫一次 callback function，在subscriber才有用
-
-    loop_rate.sleep(); 
-  }
+ //   ros::spinOnce();   // 呼叫一次 callback function，在subscriber才有用
+    ros::spin();
+ //   loop_rate.sleep(); 
+ // }
 
   return 0;
 }
