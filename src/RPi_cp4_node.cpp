@@ -61,7 +61,11 @@ int main(int argc, char **argv)
 
   // while (ros::ok())
   // {
-    ROS_INFO("Enter a number to start: "); 
+    ROS_INFO("Enter starting location: ");
+    ROS_INFO("A: Enter '0' ");
+    ROS_INFO("B: Enter '1' ");
+    ROS_INFO("C: Enter '2' ");
+
     std::cin>>start_cmd.data;
     ROS_INFO("State cmd: "); 
     ROS_INFO("Finding_Puck: 0"); 
