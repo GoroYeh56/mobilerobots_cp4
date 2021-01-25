@@ -344,7 +344,7 @@ int SPRINT_rightSpeed = 220;
 
 ///// GOAL light value threshold /////
 int threshold = 340;
-int find_threshold = 480;
+int find_threshold = 560;
 
 /////// TODO : Optimize ////////
 void Check_Touched()
@@ -459,9 +459,9 @@ void Turn_Left()
 void Turn_Right()
 {
 
-    digitalWrite(in1, HIGH);
+    digitalWrite(in1, HIGH);  // Forward : Left wheel
     digitalWrite(in2, LOW);
-    digitalWrite(in3, LOW);
+    digitalWrite(in3, LOW);   // Backward : Right wheel
     digitalWrite(in4, HIGH);
     Left_PWM = LturnRightSpeed;
     Right_PWM = RturnRightSpeed;
@@ -859,7 +859,7 @@ void KEEP_FIND_BEACON2(){
                 WAIT_AND_COMPUTE_RATIO();
                 counter--;
               }
-                           Serial.println("move");
+              Serial.println("move");
               Find_IR_SLOWLY();
               
 //              KEEP_FIND_BEACON2();              
